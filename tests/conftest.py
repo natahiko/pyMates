@@ -4,7 +4,7 @@ import pytest
 
 from personal_assistant.cli import prompts
 from personal_assistant.context import AppContext
-from personal_assistant.models import AddressBook
+from personal_assistant.models import AddressBook, NoteBook
 
 
 @pytest.fixture(autouse=True)
@@ -16,7 +16,7 @@ def no_colors(monkeypatch):
 @pytest.fixture
 def ctx():
     """Порожній контекст застосунку (дані лише в пам'яті, не на диску)."""
-    return AppContext(book=AddressBook())
+    return AppContext(book=AddressBook(), notes=NoteBook())
 
 
 @pytest.fixture

@@ -7,7 +7,7 @@
 - перевіряє телефон, email та інші поля під час введення і перепитує, якщо значення некоректне;
 - шукає контакти за будь-яким полем;
 - редагує та видаляє контакти;
-- нотатки — *у розробці*.
+- зберігає текстові нотатки: додавання, пошук за текстом, редагування й видалення за ID.
 
 ## Вимоги
 
@@ -120,6 +120,20 @@ assistant
 | `delete <name>` | видалити контакт (з підтвердженням) |
 | `birthdays [days]` | дні народження від сьогодні до N днів уперед, за замовчуванням 7 |
 
+### Нотатки
+
+Нотатки не прив'язані до контактів. Кожна отримує числовий ID, за яким її
+редагують і видаляють. ID не використовуються повторно: якщо видалити
+нотатку 2, наступна нова отримає 3, а не 2.
+
+| Команда | Опис |
+|---|---|
+| `add-note <text>` | додати нотатку; весь текст після команди — це її текст |
+| `show-notes` | усі нотатки таблицею: ID, текст, дата створення |
+| `find-note <text>` | пошук нотаток за частиною тексту, без урахування регістру |
+| `edit-note <id> <new text>` | замінити текст нотатки |
+| `delete-note <id>` | видалити нотатку (з підтвердженням) |
+
 ### Формати значень
 
 | Поле | Формат | Приклад |
@@ -129,6 +143,8 @@ assistant
 | Email | `name@domain.tld` | `john@example.com` |
 | Адреса | довільний текст, 3–200 символів | `Kyiv, Khreshchatyk St, 1, apt 5` |
 | День народження | `DD.MM.YYYY`, не в майбутньому | `25.11.1990` |
+| Текст нотатки | 1–2000 символів; кілька пробілів поспіль стають одним | `Купити молоко і хліб` |
+| ID нотатки | ціле число з `show-notes` | `3` |
 
 ### Як працює перевірка введення
 
@@ -201,6 +217,44 @@ clear John Smith address
 delete John Smith
 ```
 
+Нотатки:
+
+```text
+Enter a command: add-note Купити молоко і хліб
+Note added with ID 1.
+
+Enter a command: add-note Подзвонити мамі в неділю
+Note added with ID 2.
+
+Enter a command: find-note молоко
+Found 1 note(s) for 'молоко':
+┌────┬──────────────────────┬──────────────────┐
+│ ID │ Note                 │ Created          │
+├────┼──────────────────────┼──────────────────┤
+│ 1  │ Купити молоко і хліб │ 26.11.2026 10:59 │
+└────┴──────────────────────┴──────────────────┘
+
+Enter a command: edit-note 1 Купити молоко, хліб і сир
+Note 1 updated.
+┌────┬───────────────────────────┬──────────────────┐
+│ ID │ Note                      │ Created          │
+├────┼───────────────────────────┼──────────────────┤
+│ 1  │ Купити молоко, хліб і сир │ 26.11.2026 10:59 │
+└────┴───────────────────────────┴──────────────────┘
+
+Enter a command: delete-note 2
+┌────┬──────────────────────────┬──────────────────┐
+│ ID │ Note                     │ Created          │
+├────┼──────────────────────────┼──────────────────┤
+│ 2  │ Подзвонити мамі в неділю │ 26.11.2026 10:59 │
+└────┴──────────────────────────┴──────────────────┘
+Delete note 2? (y/n): y
+Note 2 deleted.
+
+Enter a command: edit-note 9 Новий текст
+Note 9 not found. Use 'show-notes' or 'find-note' to find it.
+```
+
 ## Тестові дані
 
 Щоб заповнити книгу 10 тестовими контактами (для перевірки чи демо):
@@ -213,6 +267,17 @@ python -m personal_assistant.demo_data
 покаже кількох людей: сьогодні, завтра, за 3, 6 і 7 днів, а `birthdays 14` —
 ще одну людину. Якщо в книзі вже є контакти, скрипт спитає підтвердження
 і збереже стару книгу як `addressbook.pkl.bak` (`--force` — без питання).
+
+Тестові нотатки (7 штук) — окремою командою:
+
+```bash
+python -m personal_assistant.demo_notes
+```
+
+Працює так само: якщо нотатки вже є, спитає підтвердження й збереже старі як
+`notes.pkl.bak` (`--force` — без питання). Резервна копія одна: повторний
+запуск перезапише її, тож справжні нотатки краще перевіряти в окремій теці
+(див. нижче).
 
 Щоб тестові дані не змішувались із робочими, можна взяти окрему теку:
 
@@ -233,8 +298,10 @@ PERSONAL_ASSISTANT_DATA_DIR=./demo python main.py
 
 Файли лежать у домашній теці користувача:
 
-- macOS / Linux: `~/.personal_assistant/addressbook.pkl`
-- Windows: `C:\Users\<user>\.personal_assistant\addressbook.pkl`
+- macOS / Linux: `~/.personal_assistant/`
+- Windows: `C:\Users\<user>\.personal_assistant\`
+
+Контакти — у `addressbook.pkl`, нотатки — у `notes.pkl`.
 
 Теку можна змінити змінною середовища `PERSONAL_ASSISTANT_DATA_DIR`
 (зручно для демо з окремим набором даних). Запис атомарний: спершу у
@@ -250,10 +317,12 @@ personal_assistant/
 ├── context.py                # AppContext: усі дані + завантаження/збереження
 ├── storage.py                # save_data / load_data (pickle)
 ├── demo_data.py              # тестові контакти: python -m personal_assistant.demo_data
+├── demo_notes.py             # тестові нотатки: python -m personal_assistant.demo_notes
 ├── models/                   # класи даних, без вводу-виводу
 │   ├── fields.py             # Field, Name, Phone, Email, Address, Birthday
 │   ├── record.py             # Record — один контакт
-│   └── address_book.py       # AddressBook — пошук, дні народження
+│   ├── address_book.py       # AddressBook — пошук, дні народження
+│   └── notes.py              # Note, NoteBook — нотатки за ID, пошук за текстом
 └── cli/                      # усе, що стосується консолі
     ├── registry.py           # @command — реєстрація команд
     ├── decorators.py         # input_error — помилки -> повідомлення
@@ -262,7 +331,8 @@ personal_assistant/
     ├── parser.py             # розбір введеного рядка
     └── handlers/
         ├── general.py        # hello, help
-        └── contacts.py       # команди контактів
+        ├── contacts.py       # команди контактів
+        └── notes.py          # команди нотаток
 tests/                        # автотести (pytest), див. розділ «Тести»
 ├── conftest.py               # спільні фікстури: ctx, answers; вимикає кольори
 ├── test_models.py            # валідація полів, Record, AddressBook
@@ -350,11 +420,13 @@ Settings → Tools → Python Integrated Tools → Default test runner.
 from personal_assistant.app import run_command
 
 
-def test_add_note_reprompts_empty_text(ctx, answers):
-    """Порожній текст нотатки перепитується."""
-    answers += ["", "Buy milk"]  # спершу порожньо, потім нормальний текст
-    result = run_command("add-note", ctx)
-    assert "added" in result
+def test_delete_note_needs_confirmation(ctx, answers):
+    """Нотатка видаляється лише після відповіді y."""
+    ctx.notes.add_note("Buy milk")
+    answers += ["maybe", "n"]  # спершу незрозуміла відповідь, потім "ні"
+    result = run_command("delete-note 1", ctx)
+    assert "Nothing deleted" in result
+    assert len(ctx.notes) == 1
     assert answers == []  # усі відповіді використані
 ```
 
@@ -362,54 +434,63 @@ def test_add_note_reprompts_empty_text(ctx, answers):
 
 ### Як додати нову команду
 
-1. Створіть модуль у `personal_assistant/cli/handlers/`, наприклад `notes.py`.
+Готовий приклад — `personal_assistant/cli/handlers/notes.py`.
+
+1. Додайте функцію в модуль своєї групи в `personal_assistant/cli/handlers/`
+   або створіть новий модуль.
 2. Зареєструйте команду декоратором — вона одразу з'явиться в `help` і в автодоповненні:
 
    ```python
    from ...context import AppContext
-   from .. import prompts, ui
+   from .. import ui
    from ..registry import command, require_args
 
    GROUP = "Notes"
 
 
-   @command("add-note", "add-note [text]", "add a note", GROUP)
-   def add_note(args: list[str], ctx: AppContext) -> str:
-       """Додати нотатку."""
-       text = prompts.retry_until_valid(" ".join(args), "Text", ...)
-       ...
-       return ui.success("Note added.")
+   @command("count-notes", "count-notes", "show how many notes are saved", GROUP)
+   def count_notes(_args: list[str], ctx: AppContext) -> str:
+       """Показати кількість нотаток."""
+       return ui.success(f"You have {len(ctx.notes)} note(s).")
    ```
 
-3. Додайте імпорт модуля в `personal_assistant/cli/handlers/__init__.py`.
+3. Якщо створили новий модуль, додайте його імпорт у
+   `personal_assistant/cli/handlers/__init__.py`.
 
 Помилки валідації кидайте як `ValueError("текст для користувача")`, «не знайдено» —
 як `NotFoundError("Note 3 not found.")`; декоратор сам покаже їх червоним.
 
-### Як додати нову колекцію даних (нотатник)
+### Як додати нову колекцію даних
 
-1. Клас моделі — у `personal_assistant/models/` (наприклад, `note.py`, `notebook.py`).
-2. У `personal_assistant/context.py` додайте поле в `AppContext` і рядки в `load` / `save`:
+Так додано нотатки, тож їх зручно взяти за зразок:
+
+1. Клас моделі — у `personal_assistant/models/` (як `models/notes.py`) і його
+   експорт у `models/__init__.py`.
+2. У `personal_assistant/context.py` — назва файлу, поле в `AppContext` і рядки
+   в `load` / `save`:
 
    ```python
-   NOTEBOOK_FILE = "notebook.pkl"
+   NOTES_FILE = "notes.pkl"
 
    @dataclass
    class AppContext:
        book: AddressBook
-       notebook: Notebook
+       notes: NoteBook
 
        @classmethod
        def load(cls) -> "AppContext":
            return cls(
                book=load_data(data_file(ADDRESS_BOOK_FILE), AddressBook),
-               notebook=load_data(data_file(NOTEBOOK_FILE), Notebook),
+               notes=load_data(data_file(NOTES_FILE), NoteBook),
            )
 
        def save(self) -> None:
            save_data(self.book, data_file(ADDRESS_BOOK_FILE))
-           save_data(self.notebook, data_file(NOTEBOOK_FILE))
+           save_data(self.notes, data_file(NOTES_FILE))
    ```
+
+3. Додайте нове поле у фікстуру `ctx` у `tests/conftest.py`, інакше тести
+   впадуть з `TypeError: ... missing 1 required positional argument`.
 
 ### Стиль коду
 
