@@ -8,6 +8,10 @@
 from collections import UserDict
 from datetime import datetime
 
+from .tags import add_tags as add_tags_to_list
+from .tags import has_tag
+from .tags import has_tag, tag_sort_key
+
 MAX_TEXT_LENGTH = 2000
 
 
@@ -29,6 +33,19 @@ class Note:
         self.text = validate_text(text)
         self.created_at = datetime.now()
         self.updated_at = self.created_at
+        self.tags = []
+
+    def add_tags(self, incoming_tags: list[str]) -> None:
+        """Додати теги до цієї нотатки."""
+        add_tags_to_list(self.tags, incoming_tags)
+
+    def __setstate__(self, state:dict) -> None:
+        """Відновити нотатку зі збережених даних"""
+        self.__dict__.update(state)
+
+        if "tags" not in state:
+            self.tags = []    
+        
 
     def edit(self, text: str) -> None:
         """Замінити текст нотатки."""
@@ -78,3 +95,21 @@ class NoteBook(UserDict):
         if not query:
             raise ValueError("Search query cannot be empty.")
         return [n for n in self.data.values() if query in n.text.lower()]
+
+    def find_by_tag(self, incoming_tag: str) -> list[Note]:
+        """Знайти нотатки за точним тегом."""
+        matching_notes = []
+
+        for note in self.data.values():
+            if has_tag(note.tags, incoming_tag):
+                matching_notes.append(note)
+
+        return matching_notes
+
+    def sort_by_tags(self) -> list[Note]:
+        """Повернути нотатки, відсортовані за тегами."""
+
+        def get_sort_key(note: Note) -> tuple[bool, list[str]]:
+            return tag_sort_key(note.tags)
+
+        return sorted(self.data.values(), key=get_sort_key)
