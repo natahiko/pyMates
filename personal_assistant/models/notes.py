@@ -9,7 +9,6 @@ from collections import UserDict
 from datetime import datetime
 
 from .tags import add_tags as add_tags_to_list
-from .tags import has_tag
 from .tags import has_tag, tag_sort_key
 
 MAX_TEXT_LENGTH = 2000
@@ -29,6 +28,7 @@ class Note:
     """Одна нотатка з текстом і тегами."""
 
     def __init__(self, note_id: int, text: str):
+        """Створити нотатку з перевіреним текстом і без тегів."""
         self.id = note_id
         self.text = validate_text(text)
         self.created_at = datetime.now()
@@ -39,13 +39,12 @@ class Note:
         """Додати теги до цієї нотатки."""
         add_tags_to_list(self.tags, incoming_tags)
 
-    def __setstate__(self, state:dict) -> None:
-        """Відновити нотатку зі збережених даних"""
+    def __setstate__(self, state: dict) -> None:
+        """Відновити нотатку з файлу; старим нотаткам без тегів дати порожній список."""
         self.__dict__.update(state)
 
         if "tags" not in state:
-            self.tags = []    
-        
+            self.tags = []
 
     def edit(self, text: str) -> None:
         """Замінити текст нотатки."""
@@ -53,6 +52,7 @@ class Note:
         self.updated_at = datetime.now()
 
     def __str__(self) -> str:
+        """Нотатка одним рядком з ID і датою створення."""
         created = self.created_at.strftime("%d.%m.%Y %H:%M")
         return f"[{self.id}] {self.text}\n     created: {created}"
 
@@ -61,6 +61,7 @@ class NoteBook(UserDict):
     """Колекція нотаток; ключ - ID нотатки."""
 
     def __init__(self, *args, **kwargs):
+        """Створити нотатник; наступний ID — на один більший за найбільший наявний."""
         super().__init__(*args, **kwargs)
         self._next_id = max(self.data, default=0) + 1
 

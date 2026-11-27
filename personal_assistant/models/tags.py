@@ -9,10 +9,12 @@ def add_tags(current_tags, incoming_tags):
         if tag and tag not in current_tags:
             current_tags.append(tag)
 
+
 def has_tag(current_tags, incoming_tag):
     """Перевірити, чи є тег у списку."""
     tag = incoming_tag.strip().lower()
     return tag in current_tags
+
 
 def tag_sort_key(current_tags):
     """Підготувати ключ для сортування нотатки за тегами."""

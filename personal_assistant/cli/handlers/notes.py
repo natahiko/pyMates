@@ -3,11 +3,12 @@
 from ...context import AppContext
 from ...models.notes import Note
 from .. import prompts, ui
-from .. decorators import NotFoundError
-from .. registry import command, require_args
+from ..decorators import NotFoundError
+from ..registry import command, require_args
 
 GROUP = "Notes"
 NOTE_HEADERS = ("ID", "Note", "Tags", "Created")
+
 
 def _parse_id(value: str) -> int:
     """Перетворити рядок на числовий ID нотатки."""
@@ -47,6 +48,7 @@ def add_note(args: list[str], ctx: AppContext) -> str:
     note = ctx.notes.add_note(" ".join(args))
     return ui.success(f"Note added with ID {note.id}.")
 
+
 @command(
     "tag-note",
     "tag-note <id> <tag> [more tags]",
@@ -85,6 +87,7 @@ def find_note(args: list[str], ctx: AppContext) -> str:
     header = ui.title(f"Found {len(found)} note(s) for '{query}':")
     return header + "\n" + _notes_table(found)
 
+
 @command("find-tag", "find-tag <tag>", "find notes by tag", GROUP)
 def find_tag(args: list[str], ctx: AppContext) -> str:
     """Знайти нотатки за тегом."""
@@ -99,6 +102,7 @@ def find_tag(args: list[str], ctx: AppContext) -> str:
 
     return _notes_table(matching_notes)
 
+
 @command("sort-notes", "sort-notes", "sort notes by tags", GROUP)
 def sort_notes(args: list[str], ctx: AppContext) -> str:
     """Показати нотатки, відсортовані за тегами."""
@@ -111,6 +115,7 @@ def sort_notes(args: list[str], ctx: AppContext) -> str:
         return ui.warning("No notes saved. Use 'add-note' to create one.")
 
     return _notes_table(notes)
+
 
 @command("edit-note", "edit-note <id> <new text>", "edit a note by ID", GROUP)
 def edit_note(args: list[str], ctx: AppContext) -> str:
